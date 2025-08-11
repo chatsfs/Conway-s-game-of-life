@@ -191,6 +191,48 @@ class Game < ApplicationRecord
     { born: born, died: died }
   end
 
+  def find_final_state(max_generations = 1000)
+    original_generation = generation
+    original_cells = cells.deep_dup
+    original_history = history.deep_dup
+
+    max_generations.times do
+      advance_generation!
+
+      if stable? || extinct? || oscillating?
+        reason = if extinct?
+          "extinct"
+        elsif stable?
+          "stable"
+        elsif oscillating?
+          "oscillating"
+        end
+
+        return {
+          success: true,
+          generation: generation,
+          reason: reason,
+          population: population,
+          oscillation_period: oscillation_period
+        }
+      end
+    end
+
+    update(
+      generation: original_generation,
+      cells: original_cells,
+      history: original_history
+    )
+
+    {
+      success: false,
+      generation: generation,
+      reason: "timeout",
+      population: population,
+      oscillation_period: nil
+    }
+  end
+
   private
 
   def setup_cells

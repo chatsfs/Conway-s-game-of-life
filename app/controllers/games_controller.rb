@@ -1,14 +1,9 @@
 class GamesController < ApplicationController
-  before_action :find_game, only: [ :show, :advance, :cells, :destroy, :randomize, :reset, :analysis, :export, :next, :advance_states, :final_state ]
+  before_action :set_game, only: [ :show, :advance, :cells, :destroy, :randomize, :reset, :analysis, :export, :next, :advance_states, :final_state ]
 
   def create
-    game = Game.new(game_params)
-
-    if game.save
-      render json: game_json(game), status: :created
-    else
-      render json: { errors: game.errors.full_messages }, status: :unprocessable_content
-    end
+    game = Game.create!(game_params)
+    render json: game_json(game), status: :created
   end
 
   def show
@@ -21,12 +16,9 @@ class GamesController < ApplicationController
   end
 
   def cells
-    if valid_cell_positions?
-      @game.set_cells(params[:cells])
-      render json: game_json(@game)
-    else
-      render json: { error: "Invalid cell coordinates" }, status: :unprocessable_content
-    end
+    validate_cell_positions!
+    @game.set_cells(cell_positions_params)
+    render json: game_json(@game)
   end
 
   def destroy
@@ -35,8 +27,8 @@ class GamesController < ApplicationController
   end
 
   def randomize
-    density = params[:density].to_f
-    @game.randomize(density: density)
+    validate_density!
+    @game.randomize(density: randomize_params[:density].to_f)
     render json: game_json(@game)
   end
 
@@ -77,70 +69,57 @@ class GamesController < ApplicationController
   end
 
   def advance_states
-    if params[:states].blank?
-      render json: { error: "States parameter is required" }, status: :unprocessable_content
-      return
-    end
-
-    states = params[:states].to_i
-
-    if states <= 0
-      render json: { error: "States parameter must be a positive integer" }, status: :unprocessable_content
-      return
-    end
+    validate_states_param!
+    states = advance_states_params[:states].to_i
 
     states.times { @game.advance_generation! }
     render json: game_json(@game)
   end
 
   def final_state
-    max_generations = params[:max_generations]&.to_i || 1000
-    original_generation = @game.generation
-    original_cells = @game.cells.deep_dup
-    original_history = @game.history.deep_dup
+    max_generations = final_state_params[:max_generations]&.to_i || 1000
+    validate_max_generations!(max_generations)
 
-    max_generations.times do
-      @game.advance_generation!
+    result = @game.find_final_state(max_generations)
 
-      if @game.stable? || @game.extinct? || @game.oscillating?
-        reason = if @game.extinct?
-          "extinct"
-        elsif @game.stable?
-          "stable"
-        elsif @game.oscillating?
-          "oscillating"
-        end
-
-        render json: {
-          final_generation: @game.generation,
-          reason: reason,
-          population: @game.population,
-          oscillation_period: @game.oscillation_period
-        }
-        return
-      end
+    if result[:success]
+      render json: {
+        final_generation: result[:generation],
+        reason: result[:reason],
+        population: result[:population],
+        oscillation_period: result[:oscillation_period]
+      }
+    else
+      raise GameTimeoutError.new(max_generations)
     end
-
-    @game.update(
-      generation: original_generation,
-      cells: original_cells,
-      history: original_history
-    )
-    render json: {
-      error: "Board doesn't reach conclusion after #{max_generations} attempts"
-    }, status: :unprocessable_content
   end
 
   private
 
-  def find_game
+  def set_game
     @game = Game.find(params[:id])
-  rescue ActiveRecord::RecordNotFound
-    render json: { error: "Game not found" }, status: :not_found
   end
 
   def game_params
+    params.require(:game).permit(:width, :height)
+  rescue ActionController::ParameterMissing
     params.permit(:width, :height)
+  end
+
+  def cell_positions_params
+    params.require(:cells)
+  end
+
+  def randomize_params
+    params.permit(:density)
+  end
+
+  def advance_states_params
+    params.permit(:states)
+  end
+
+  def final_state_params
+    params.permit(:max_generations)
   end
 
   def game_json(game)
@@ -153,13 +132,38 @@ class GamesController < ApplicationController
     }
   end
 
-  def valid_cell_positions?
-    return false unless params[:cells].is_a?(Array)
+  def validate_cell_positions!
+    cells = params[:cells]
+    raise InvalidParameterError.new(:cells, "Cells must be an array") unless cells.is_a?(Array)
 
-    params[:cells].all? do |cell|
+    cells.each do |cell|
       row = cell[:row].to_i
       col = cell[:col].to_i
-      row >= 0 && row < @game.height && col >= 0 && col < @game.width
+      unless row >= 0 && row < @game.height && col >= 0 && col < @game.width
+        raise InvalidCellPositionError.new(row, col, @game.height, @game.width)
+      end
+    end
+  end
+
+  def validate_density!
+    density = params[:density].to_f
+    unless density > 0 && density <= 1
+      raise InvalidParameterError.new(:density, "Density must be between 0 and 1")
+    end
+  end
+
+  def validate_states_param!
+    raise InvalidParameterError.new(:states, "States parameter is required") if params[:states].blank?
+
+    states = params[:states].to_i
+    unless states > 0 && states <= 10000
+      raise InvalidParameterError.new(:states, "States must be between 1 and 10000")
+    end
+  end
+
+  def validate_max_generations!(max_generations)
+    unless max_generations > 0 && max_generations <= 10000
+      raise InvalidParameterError.new(:max_generations, "Max generations must be between 1 and 10000")
     end
   end
 end

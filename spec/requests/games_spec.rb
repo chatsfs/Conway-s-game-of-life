@@ -19,13 +19,13 @@ RSpec.describe 'Games API' do
     it 'requires width parameter' do
       post '/games', params: { height: 10 }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
 
     it 'requires height parameter' do
       post '/games', params: { width: 10 }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
   end
 
@@ -96,7 +96,7 @@ RSpec.describe 'Games API' do
         cells: [ { row: 10, col: 10 } ]
       }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
   end
 
@@ -275,7 +275,7 @@ RSpec.describe 'Games API' do
 
       expect(response).to have_http_status(:unprocessable_content)
       error = JSON.parse(response.body)
-      expect(error['error']).to include('States parameter is required')
+      expect(error['error']['message']).to include('States parameter is required')
     end
 
     it 'validates states is a positive integer' do
@@ -321,9 +321,9 @@ RSpec.describe 'Games API' do
 
       post "/games/#{game_id}/final_state", params: { max_generations: 1 }
 
-      expect(response).to have_http_status(:unprocessable_content)
+      expect(response).to have_http_status(:request_timeout)
       error = JSON.parse(response.body)
-      expect(error['error']).to include('conclusion')
+      expect(error['error']['message']).to include('conclusion')
     end
 
     it 'detects extinction' do
