@@ -9,6 +9,9 @@ Rails.application.routes.draw do
       post :reset
       get :analysis
       get :export
+      post :next
+      post :advance_states
+      post :final_state
     end
   end
 end

@@ -1,5 +1,5 @@
 class GamesController < ApplicationController
-  before_action :find_game, only: [ :show, :advance, :cells, :destroy, :randomize, :reset, :analysis, :export ]
+  before_action :find_game, only: [ :show, :advance, :cells, :destroy, :randomize, :reset, :analysis, :export, :next, :advance_states, :final_state ]
 
   def create
     game = Game.new(game_params)
@@ -63,6 +63,72 @@ class GamesController < ApplicationController
       rle: @game.to_rle,
       alive_cells: @game.alive_cells
     }
+  end
+
+  def next
+    game_copy = Game.new(@game.attributes.except("id", "created_at", "updated_at"))
+    game_copy.advance_generation
+
+    render json: {
+      grid: game_copy.to_grid,
+      generation: game_copy.generation,
+      population: game_copy.population
+    }
+  end
+
+  def advance_states
+    if params[:states].blank?
+      render json: { error: "States parameter is required" }, status: :unprocessable_content
+      return
+    end
+
+    states = params[:states].to_i
+
+    if states <= 0
+      render json: { error: "States parameter must be a positive integer" }, status: :unprocessable_content
+      return
+    end
+
+    states.times { @game.advance_generation! }
+    render json: game_json(@game)
+  end
+
+  def final_state
+    max_generations = params[:max_generations]&.to_i || 1000
+    original_generation = @game.generation
+    original_cells = @game.cells.deep_dup
+    original_history = @game.history.deep_dup
+
+    max_generations.times do
+      @game.advance_generation!
+
+      if @game.stable? || @game.extinct? || @game.oscillating?
+        reason = if @game.extinct?
+          "extinct"
+        elsif @game.stable?
+          "stable"
+        elsif @game.oscillating?
+          "oscillating"
+        end
+
+        render json: {
+          final_generation: @game.generation,
+          reason: reason,
+          population: @game.population,
+          oscillation_period: @game.oscillation_period
+        }
+        return
+      end
+    end
+
+    @game.update(
+      generation: original_generation,
+      cells: original_cells,
+      history: original_history
+    )
+    render json: {
+      error: "Board doesn't reach conclusion after #{max_generations} attempts"
+    }, status: :unprocessable_content
   end
 
   private
