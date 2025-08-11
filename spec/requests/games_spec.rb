@@ -6,7 +6,7 @@ RSpec.describe 'Games API' do
 
     it 'creates a new game' do
       post '/games', params: valid_params
-      
+
       expect(response).to have_http_status(:created)
       expect(JSON.parse(response.body)).to include(
         'width' => 10,
@@ -18,13 +18,13 @@ RSpec.describe 'Games API' do
 
     it 'requires width parameter' do
       post '/games', params: { height: 10 }
-      
+
       expect(response).to have_http_status(:unprocessable_entity)
     end
 
     it 'requires height parameter' do
       post '/games', params: { width: 10 }
-      
+
       expect(response).to have_http_status(:unprocessable_entity)
     end
   end
@@ -35,9 +35,9 @@ RSpec.describe 'Games API' do
     it 'returns game state' do
       post '/games', params: game_data
       game_id = JSON.parse(response.body)['id']
-      
+
       get "/games/#{game_id}"
-      
+
       expect(response).to have_http_status(:ok)
       expect(JSON.parse(response.body)).to include(
         'id' => game_id,
@@ -48,7 +48,7 @@ RSpec.describe 'Games API' do
 
     it 'returns 404 for non-existent game' do
       get '/games/999'
-      
+
       expect(response).to have_http_status(:not_found)
     end
   end
@@ -59,9 +59,9 @@ RSpec.describe 'Games API' do
     it 'advances game generation' do
       post '/games', params: game_data
       game_id = JSON.parse(response.body)['id']
-      
+
       post "/games/#{game_id}/advance"
-      
+
       expect(response).to have_http_status(:ok)
       expect(JSON.parse(response.body)['generation']).to eq(1)
     end
@@ -73,7 +73,7 @@ RSpec.describe 'Games API' do
     it 'sets cells alive' do
       post '/games', params: game_data
       game_id = JSON.parse(response.body)['id']
-      
+
       put "/games/#{game_id}/cells", params: {
         cells: [
           { row: 1, col: 2 },
@@ -81,9 +81,9 @@ RSpec.describe 'Games API' do
           { row: 3, col: 2 }
         ]
       }
-      
+
       expect(response).to have_http_status(:ok)
-      
+
       game_response = JSON.parse(response.body)
       expect(game_response['population']).to eq(3)
     end
@@ -91,11 +91,11 @@ RSpec.describe 'Games API' do
     it 'validates cell coordinates are in bounds' do
       post '/games', params: game_data
       game_id = JSON.parse(response.body)['id']
-      
+
       put "/games/#{game_id}/cells", params: {
-        cells: [{ row: 10, col: 10 }]
+        cells: [ { row: 10, col: 10 } ]
       }
-      
+
       expect(response).to have_http_status(:unprocessable_entity)
     end
   end
@@ -106,11 +106,11 @@ RSpec.describe 'Games API' do
     it 'deletes the game' do
       post '/games', params: game_data
       game_id = JSON.parse(response.body)['id']
-      
+
       delete "/games/#{game_id}"
-      
+
       expect(response).to have_http_status(:no_content)
-      
+
       get "/games/#{game_id}"
       expect(response).to have_http_status(:not_found)
     end
@@ -122,11 +122,11 @@ RSpec.describe 'Games API' do
     it 'randomizes grid with density' do
       post '/games', params: game_data
       game_id = JSON.parse(response.body)['id']
-      
+
       post "/games/#{game_id}/randomize", params: { density: 0.3 }
-      
+
       expect(response).to have_http_status(:ok)
-      
+
       game_response = JSON.parse(response.body)
       expect(game_response['population']).to be > 0
       expect(game_response['population']).to be < 100
@@ -139,14 +139,14 @@ RSpec.describe 'Games API' do
     it 'resets game to initial state' do
       post '/games', params: game_data
       game_id = JSON.parse(response.body)['id']
-      
+
       put "/games/#{game_id}/cells", params: {
-        cells: [{ row: 1, col: 1 }]
+        cells: [ { row: 1, col: 1 } ]
       }
       post "/games/#{game_id}/advance"
-      
+
       post "/games/#{game_id}/reset"
-      
+
       expect(response).to have_http_status(:ok)
       game_response = JSON.parse(response.body)
       expect(game_response['generation']).to eq(0)
@@ -159,7 +159,7 @@ RSpec.describe 'Games API' do
     it 'returns analysis data' do
       post '/games', params: game_data
       game_id = JSON.parse(response.body)['id']
-      
+
       put "/games/#{game_id}/cells", params: {
         cells: [
           { row: 1, col: 1 },
@@ -168,12 +168,12 @@ RSpec.describe 'Games API' do
           { row: 2, col: 2 }
         ]
       }
-      
+
       get "/games/#{game_id}/analysis"
-      
+
       expect(response).to have_http_status(:ok)
       analysis = JSON.parse(response.body)
-      
+
       expect(analysis).to include(
         'population' => 4,
         'stable' => false,
@@ -197,16 +197,16 @@ RSpec.describe 'Games API' do
     it 'exports grid in multiple formats' do
       post '/games', params: game_data
       game_id = JSON.parse(response.body)['id']
-      
+
       put "/games/#{game_id}/cells", params: {
-        cells: [{ row: 1, col: 1 }]
+        cells: [ { row: 1, col: 1 } ]
       }
-      
+
       get "/games/#{game_id}/export"
-      
+
       expect(response).to have_http_status(:ok)
       export_data = JSON.parse(response.body)
-      
+
       expect(export_data).to include('grid', 'rle', 'alive_cells')
       expect(export_data['alive_cells']).to contain_exactly(
         { 'row' => 1, 'col' => 1 }

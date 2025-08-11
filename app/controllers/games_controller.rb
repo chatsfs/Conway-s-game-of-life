@@ -1,9 +1,9 @@
 class GamesController < ApplicationController
-  before_action :find_game, only: [:show, :advance, :cells, :destroy, :randomize, :reset, :analysis, :export]
+  before_action :find_game, only: [ :show, :advance, :cells, :destroy, :randomize, :reset, :analysis, :export ]
 
   def create
     game = Game.new(game_params)
-    
+
     if game.save
       render json: game_json(game), status: :created
     else
@@ -89,7 +89,7 @@ class GamesController < ApplicationController
 
   def valid_cell_positions?
     return false unless params[:cells].is_a?(Array)
-    
+
     params[:cells].all? do |cell|
       row = cell[:row].to_i
       col = cell[:col].to_i

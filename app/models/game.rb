@@ -1,6 +1,6 @@
 class Game < ApplicationRecord
   validates :width, :height, presence: true, numericality: { greater_than: 0 }
-  
+
   attribute :cells, :json, default: -> { [] }
   attribute :initial_cells, :json, default: -> { [] }
   attribute :history, :json, default: -> { [] }
@@ -98,37 +98,37 @@ class Game < ApplicationRecord
     (0...height).each do |row|
       count = 1
       current = alive_at?(row, 0)
-      
+
       (1...width).each do |col|
         cell = alive_at?(row, col)
         if cell == current
           count += 1
         else
-          result += count > 1 ? "#{count}#{current ? 'o' : 'b'}" : (current ? 'o' : 'b')
+          result += count > 1 ? "#{count}#{current ? 'o' : 'b'}" : (current ? "o" : "b")
           current = cell
           count = 1
         end
       end
-      
-      result += count > 1 ? "#{count}#{current ? 'o' : 'b'}" : (current ? 'o' : 'b')
+
+      result += count > 1 ? "#{count}#{current ? 'o' : 'b'}" : (current ? "o" : "b")
       result += "$" unless row == height - 1
     end
-    
+
     result + "!"
   end
 
   def pattern_bounds
     alive_positions = alive_cells
     return nil if alive_positions.empty?
-    
+
     rows = alive_positions.map { |pos| pos[:row] }
     cols = alive_positions.map { |pos| pos[:col] }
-    
+
     min_row = rows.min
     max_row = rows.max
     min_col = cols.min
     max_col = cols.max
-    
+
     {
       min_row: min_row,
       max_row: max_row,
@@ -146,7 +146,7 @@ class Game < ApplicationRecord
   def stable?
     return false if generation == 0
     return false if history.empty?
-    
+
     current_state = cells.to_s
     history.last == current_state
   end
@@ -158,7 +158,7 @@ class Game < ApplicationRecord
   def oscillating?
     return false if generation < 2
     return false if history.length < 2
-    
+
     current_state = cells.to_s
     history.each_with_index do |past_state, index|
       if past_state == current_state
@@ -170,7 +170,7 @@ class Game < ApplicationRecord
 
   def oscillation_period
     return nil unless oscillating?
-    
+
     current_state = cells.to_s
     history.reverse.each_with_index do |past_state, index|
       if past_state == current_state
@@ -184,10 +184,10 @@ class Game < ApplicationRecord
     old_alive = alive_cells
     advance_generation
     new_alive = alive_cells
-    
+
     born = new_alive - old_alive
     died = old_alive - new_alive
-    
+
     { born: born, died: died }
   end
 
