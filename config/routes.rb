@@ -5,6 +5,10 @@ Rails.application.routes.draw do
     member do
       post :advance
       put :cells
+      post :randomize
+      post :reset
+      get :analysis
+      get :export
     end
   end
 end

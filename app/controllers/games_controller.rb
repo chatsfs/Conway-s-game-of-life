@@ -1,5 +1,5 @@
 class GamesController < ApplicationController
-  before_action :find_game, only: [:show, :advance, :cells, :destroy]
+  before_action :find_game, only: [:show, :advance, :cells, :destroy, :randomize, :reset, :analysis, :export]
 
   def create
     game = Game.new(game_params)
@@ -32,6 +32,37 @@ class GamesController < ApplicationController
   def destroy
     @game.destroy
     head :no_content
+  end
+
+  def randomize
+    density = params[:density].to_f
+    @game.randomize(density: density)
+    render json: game_json(@game)
+  end
+
+  def reset
+    @game.reset_to_initial!
+    render json: game_json(@game)
+  end
+
+  def analysis
+    render json: {
+      population: @game.population,
+      generation: @game.generation,
+      stable: @game.stable?,
+      extinct: @game.extinct?,
+      oscillating: @game.oscillating?,
+      oscillation_period: @game.oscillation_period,
+      bounds: @game.pattern_bounds
+    }
+  end
+
+  def export
+    render json: {
+      grid: @game.to_grid,
+      rle: @game.to_rle,
+      alive_cells: @game.alive_cells
+    }
   end
 
   private
