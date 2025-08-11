@@ -13,7 +13,7 @@ class GameTimeoutError < GameError
   end
 end
 
-class InvalidCellPositionError < GameError  
+class InvalidCellPositionError < GameError
   def initialize(row, col, height, width)
     super("Cell position (#{row}, #{col}) is out of bounds for #{height}x#{width} grid", :invalid_position)
   end

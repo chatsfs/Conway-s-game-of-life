@@ -233,7 +233,7 @@ RSpec.describe 'Games API' do
 
       expect(response).to have_http_status(:ok)
       next_state = JSON.parse(response.body)
-      
+
       expect(next_state).to include('grid', 'generation', 'population')
       expect(next_state['generation']).to eq(1)
 
@@ -262,7 +262,7 @@ RSpec.describe 'Games API' do
 
       expect(response).to have_http_status(:ok)
       result = JSON.parse(response.body)
-      
+
       expect(result['generation']).to eq(3)
       expect(result).to include('id', 'width', 'height', 'population')
     end
@@ -308,7 +308,7 @@ RSpec.describe 'Games API' do
 
       expect(response).to have_http_status(:ok)
       result = JSON.parse(response.body)
-      
+
       expect(result).to include('final_generation', 'reason', 'population')
       expect(result['reason']).to eq('stable')
     end
@@ -338,7 +338,7 @@ RSpec.describe 'Games API' do
 
       expect(response).to have_http_status(:ok)
       result = JSON.parse(response.body)
-      
+
       expect(result['reason']).to eq('extinct')
       expect(result['population']).to eq(0)
     end
