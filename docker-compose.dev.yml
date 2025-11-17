@@ -1,0 +1,45 @@
+version: "3.8"
+
+services:
+  backend:
+    working_dir: /rails
+    command: bundle exec rails server -b 0.0.0.0 -p 3000
+    ports:
+      - "3000:3000"
+    environment:
+      - RAILS_ENV=development
+      - RAILS_LOG_TO_STDOUT=true
+    volumes:
+      - ./backend:/rails
+      - backend-bundle:/usr/local/bundle
+    networks:
+      - conway-network
+    stdin_open: true
+    tty: true
+
+  frontend:
+    image: node:18-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+    volumes:
+      - ./frontend:/app
+      - frontend-modules:/app/node_modules
+    networks:
+      - conway-network
+    depends_on:
+      - backend
+    stdin_open: true
+    tty: true
+
+networks:
+  conway-network:
+    driver: bridge
+
+volumes:
+  backend-bundle:
+  frontend-modules:
